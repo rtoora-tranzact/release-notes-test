@@ -2,7 +2,7 @@
 
 Console.WriteLine("Hello, World!");
 Console.Write("Please enter your name: ");
-string name = Console.ReadLine();
+string? name = Console.ReadLine();
 
 if (!string.IsNullOrEmpty(name))
 {
