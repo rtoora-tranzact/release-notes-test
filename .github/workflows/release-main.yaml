@@ -20,8 +20,6 @@ jobs:
               name: Increment version
               uses: im-open/git-version-lite@v2.0.0
               with:
-                calculate-prerelease-version: true
-                branch-name: ${{ github.base_ref }}
                 create-ref: true
                 github-token: ${{ secrets.GITHUB_TOKEN }}
                 default-release-type: major
@@ -29,13 +27,13 @@ jobs:
             - id: set-version-output
               name: Set version output
               run: |
-                export VERSION="$(echo ${{ steps.get-version.outputs.NEXT_VERSION }} | cut -c 2-)"
+                export VERSION="$(echo ${{ steps.get-version.outputs.NEXT_VERSION }} | cut -d v -f2)"
                 echo "NEXT_VERSION=$VERSION" >> $GITHUB_OUTPUT
 
             - run: echo "${{ steps.set-version-output.outputs.NEXT_VERSION }}"
 
     release-package:
-        if: github.event.pull_request.merged == true
+        if: github.event.pull_request.merged == true && (github.event.pull_request.base.ref == 'main')
         needs: increment-version
         env:
             GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -82,3 +80,23 @@ jobs:
               run: dotnet nuget push $PACKAGE_NAME.${VERSION}.nupkg --source $PACKAGE_SOURCE --api-key $NUGET_AUTH_TOKEN
               env:
                 NUGET_AUTH_TOKEN: ${{ secrets.NUGET_AUTH_TOKEN }}
+
+            - name: Generate Release Notes
+              run: |
+                echo "# Release v${VERSION}" > RELEASE_NOTES.md
+                echo "" >> RELEASE_NOTES.md
+                echo "Released on $(date +'%Y-%m-%d')" >> RELEASE_NOTES.md
+                echo "" >> RELEASE_NOTES.md
+                echo "## Changes" >> RELEASE_NOTES.md
+                git log --pretty=format:"- %s" $(git describe --tags --abbrev=0 2>/dev/null || echo HEAD~10)..HEAD >> RELEASE_NOTES.md
+
+            - name: Create GitHubRelease
+              uses: softprops/action-gh-release@v1
+              with:
+                tag_name: v${{ env.NEXT_VERSION }}
+                name: Release v${{ env.NEXT_VERSION }}
+                body_path: RELEASE_NOTES.md
+                draft: false
+                prerelease: false
+              env:
+                GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
