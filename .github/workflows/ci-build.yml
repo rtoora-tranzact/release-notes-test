@@ -1,7 +1,13 @@
 name: Build
 on:
   pull_request:
-    types: [opened, synchronize, reopened, labeled, unlabeled]
+    branches:
+      - develop
+      - main
+  push:
+    branches:
+      - develop
+      - main
 jobs:
   build-lib:
     runs-on: ubuntu-latest
