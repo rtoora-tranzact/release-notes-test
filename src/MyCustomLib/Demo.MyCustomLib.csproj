@@ -6,4 +6,14 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <Product>Demo.MyCustomLib</Product>
+    <title>Demo.MyCustomLib</title>
+    <PackageId>Demo.MyCustomLib</PackageId>
+    <version>0.0.0</version>
+    <repositoryType>git</repositoryType>
+    <repositoryUrl>https://github.com/rtoora-tranzact/release-notes-test</repositoryUrl>
+  </PropertyGroup>
+
 </Project>

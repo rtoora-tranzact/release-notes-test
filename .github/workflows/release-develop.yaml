@@ -1,0 +1,78 @@
+name: Release (Develop)
+on:
+    pull_request:
+        types: [closed]
+        branches:
+            - develop
+jobs:
+    increment-version:
+        if: github.event.pull_request.merged == true
+        runs-on: ubuntu-latest
+        outputs:
+            NEXT_VERSION: ${{ steps.set-version-output.outputs.NEXT_VERSION }}
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                fetch-depth: 0
+
+            - id: get-version
+              name: Increment version
+              uses: im-open/git-version-lite@v2.0.0
+              with:
+                calculate-prerelease-version: true
+                branch-name: ${{ github.base_ref }}
+                create-ref: true
+                github-token: ${{ secrets.GITHUB_TOKEN }}
+                default-release-type: major
+
+            - id: set-version-output
+              name: Set version output
+              run: |
+                export VERSION="$(echo ${{ steps.get-version.outputs.NEXT_VERSION }} | cut -c 2-)"
+                echo '::set-output name=NEXT_VERSION::'$VERSION
+
+            - run: echo "${{ steps.set-version-output.outputs.NEXT_VERSION }}"
+
+    release-package:
+        if: github.event.pull_request.merged == true
+        needs: increment-version
+        env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            DOTNET_PREVIEW: false
+            SRC_DIR: "./src/MyCustomLib"
+            SRC_PROJ: "Demo.MyCustomLib.csproj"
+            PACKAGE_NAME: "Demo.MyCustomLib"
+            PACKAGE_SOURCE: https://nuget.pkg.github.com/rtoora-tranzact/index.json
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+              with:
+                fetch-depth: 0
+
+            - name: Set VERSION variable from tag
+              run: echo "VERSION=${{ needs.increment-version.outputs.NEXT_VERSION }}" >> $GITHUB_ENV
+
+            - uses: actions/setup-dotnet@v3
+              with:
+                dotnet-version: |
+                    9.0.x
+                dotnet-quality: ${{ env.DOTNET_PREVIEW == 'true' && 'preview' || 'ga' }}
+
+            # Configure NuGet authentication
+            - name: Setup NuGet credentials
+              run: |
+                dotnet nuget add source ${{ env.PACKAGE_SOURCE }} --name github-personal \
+                  --username ${{ secrets.NUGET_USERNAME }} \
+                  --password ${{ secrets.NUGET_AUTH_TOKEN }} \
+                  --store-password-in-clear-text
+
+            - name: Build
+              run: dotnet build $SRC_DIR/$SRC_PROJ --configuration Release /p:Version=${VERSION}
+
+            - name: Pack
+              run: dotnet pack $SRC_DIR/$SRC_PROJ --configuration Release /p:Version=${VERSION} --output .
+
+            - name: Push to GitHub Feed
+              run: dotnet nuget push $PACKAGE_NAME.${VERSION}.nupkg --source $PACKAGE_SOURCE --api-key ${secrets.NUGET_AUTH_TOKEN}
