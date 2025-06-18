@@ -6,4 +6,9 @@ public class GreetingHelper
     {
         return $"Hello, {name}!";
     }
+
+    public static string GetGoodByeMessage()
+    {
+        return $"Goodbye!";
+    }
 }
