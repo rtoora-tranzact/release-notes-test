@@ -4,6 +4,7 @@ on:
         types: [closed]
         branches:
             - develop
+permissions: write-all
 jobs:
     increment-version:
         if: github.event.pull_request.merged == true
@@ -29,7 +30,7 @@ jobs:
               name: Set version output
               run: |
                 export VERSION="$(echo ${{ steps.get-version.outputs.NEXT_VERSION }} | cut -c 2-)"
-                echo '::set-output name=NEXT_VERSION::'$VERSION
+                echo "NEXT_VERSION=$VERSION" >> $GITHUB_OUTPUT
 
             - run: echo "${{ steps.set-version-output.outputs.NEXT_VERSION }}"
 
