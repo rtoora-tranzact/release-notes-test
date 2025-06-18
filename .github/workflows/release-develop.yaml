@@ -64,6 +64,9 @@ jobs:
             # Configure NuGet authentication
             - name: Setup NuGet credentials
               run: |
+                if dotnet nuget list source | grep github-personal; then
+                  dotnet nuget remove source github-personal
+                fi
                 dotnet nuget add source ${{ env.PACKAGE_SOURCE }} --name github-personal \
                   --username ${{ secrets.NUGET_USERNAME }} \
                   --password ${{ secrets.NUGET_AUTH_TOKEN }} \
