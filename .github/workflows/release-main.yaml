@@ -76,7 +76,7 @@ jobs:
                 echo '${{ needs.generate-changelog.outputs.changelog }}' > RELEASE_NOTES.md
 
             - name: Build
-              run: dotnet build $SRC_DIR/$SRC_PROJ --configuration Release /p:Version=${VERSION}"
+              run: dotnet build $SRC_DIR/$SRC_PROJ --configuration Release /p:Version=${VERSION}
 
             - name: Pack
               run: dotnet pack $SRC_DIR/$SRC_PROJ --configuration Release /p:Version=${VERSION} --output .
