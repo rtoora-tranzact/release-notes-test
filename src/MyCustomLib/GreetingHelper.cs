@@ -11,4 +11,9 @@ public class GreetingHelper
     {
         return $"Goodbye!";
     }
+
+    public static string GetGoodByeMessageV2()
+    {
+        return $"Goodbye!";
+    }
 }
