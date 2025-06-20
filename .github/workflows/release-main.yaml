@@ -11,6 +11,7 @@ jobs:
         runs-on: ubuntu-latest
         outputs:
             NEXT_VERSION: ${{ steps.set-version-output.outputs.NEXT_VERSION }}
+            TAG_NAME: ${{ steps.get-version.outputs.NEXT_VERSION }}
         steps:
             - uses: actions/checkout@v4
               with:
@@ -32,9 +33,37 @@ jobs:
 
             - run: echo "${{ steps.set-version-output.outputs.NEXT_VERSION }}"
 
+    generate-changelog:
+        if: github.event.pull_request.merged == true
+        needs: increment-version
+        runs-on: ubuntu-latest
+        outputs:
+            changelog: ${{ steps.tag-changelog.outputs.changelog }}
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+              with:
+                fetch-depth: 0
+
+            - name: Generate Changelog
+              id: tag-changelog
+              uses: loopwerk/tag-changelog@v1
+              with:
+                token: ${{ secrets.GITHUB_TOKEN }}
+                exclude_types: other,doc,chore
+
+            - name: Create release
+              uses: actions/create-release@v1
+              env:
+                GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              with:
+                tag_name: ${{ needs.increment-version.outputs.TAG_NAME }}
+                release_name: Release ${{ needs.increment-version.outputs.TAG_NAME }}
+                body: ${{ steps.tag-changelog.outputs.changelog }}
+
     release-package:
         if: github.event.pull_request.merged == true && (github.event.pull_request.base.ref == 'main')
-        needs: increment-version
+        needs: [increment-version, generate-changelog]
         env:
             GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
             DOTNET_PREVIEW: false
@@ -70,11 +99,15 @@ jobs:
                   --password ${{ secrets.NUGET_AUTH_TOKEN }} \
                   --store-password-in-clear-text
 
+            - name: Create release notes file
+              run: |
+                echo '${{ needs.generate-changelog.outputs.changelog }}' > RELEASE_NOTES.md
+
             - name: Build
-              run: dotnet build $SRC_DIR/$SRC_PROJ --configuration Release /p:Version=${VERSION}
+              run: dotnet build $SRC_DIR/$SRC_PROJ --configuration Release /p:Version=${VERSION} /p:PackageReleaseNotes="$(cat RELEASE_NOTES.md)"
 
             - name: Pack
-              run: dotnet pack $SRC_DIR/$SRC_PROJ --configuration Release /p:Version=${VERSION} --output .
+              run: dotnet pack $SRC_DIR/$SRC_PROJ --configuration Release /p:Version=${VERSION} /p:PackageReleaseNotes="$(cat RELEASE_NOTES.md)" --output .
 
             - name: Push to GitHub Feed
               run: dotnet nuget push $PACKAGE_NAME.${VERSION}.nupkg --source $PACKAGE_SOURCE --api-key $NUGET_AUTH_TOKEN
