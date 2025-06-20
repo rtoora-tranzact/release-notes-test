@@ -11,6 +11,7 @@ jobs:
         runs-on: ubuntu-latest
         outputs:
             NEXT_VERSION: ${{ steps.set-version-output.outputs.NEXT_VERSION }}
+            TAG_NAME: ${{ steps.get-version.outputs.NEXT_VERSION }}
         steps:
             - uses: actions/checkout@v4
               with:
@@ -70,8 +71,12 @@ jobs:
                   --password ${{ secrets.NUGET_AUTH_TOKEN }} \
                   --store-password-in-clear-text
 
+            - name: Create release notes file
+              run: |
+                echo '${{ needs.generate-changelog.outputs.changelog }}' > RELEASE_NOTES.md
+
             - name: Build
-              run: dotnet build $SRC_DIR/$SRC_PROJ --configuration Release /p:Version=${VERSION}
+              run: dotnet build $SRC_DIR/$SRC_PROJ --configuration Release /p:Version=${VERSION}"
 
             - name: Pack
               run: dotnet pack $SRC_DIR/$SRC_PROJ --configuration Release /p:Version=${VERSION} --output .
@@ -80,3 +85,49 @@ jobs:
               run: dotnet nuget push $PACKAGE_NAME.${VERSION}.nupkg --source $PACKAGE_SOURCE --api-key $NUGET_AUTH_TOKEN
               env:
                 NUGET_AUTH_TOKEN: ${{ secrets.NUGET_AUTH_TOKEN }}
+
+            - id: build_changelog
+              name: "Build Changelog"
+              uses: mikepenz/release-changelog-builder-action@v4
+              env:
+                GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              with:
+                configurationJson: |
+                  {
+                    "template": "#{{CHANGELOG}}\n\n<details>\n<summary>Uncategorized</summary>\n\n#{{UNCATEGORIZED}}\n</details>",
+                    "categories": [
+                      {
+                          "title": "## 💬 Dependencies",
+                          "labels": ["dependencies"]
+                      },
+                      {
+                          "title": "## 🚀 Enhancement",
+                          "labels": ["enhancement"]
+                      },
+                      {
+                          "title": "## 🐛 Fixes",
+                          "labels": ["bug"]
+                      },
+                      {
+                          "title": "## 📄 Documentation",
+                          "labels": ["documentation"]
+                      },
+                      {
+                          "title": "## 🏗 Maintenance",
+                          "labels": ["maintenance"]
+                      }
+                    ]
+                  }
+
+            - id: create-release
+              name: Create Release
+              uses: im-open/create-release@v3.1.3
+              with:
+                github-token: ${{ secrets.GITHUB_TOKEN }}
+                tag-name: ${{ env.VERSION }}
+                commitish: ${{ github.ref }}
+                body: ${{ steps.build_changelog.outputs.changelog }}
+                prerelease: ${{ github.base_ref == 'develop' }}
+                # The release might already exist if you hit 're-run jobs' on a workflow run that already completed
+                # once. Creating a release when one already exists will fail, add the arg here to just delete it.
+                delete-existing-release: true
