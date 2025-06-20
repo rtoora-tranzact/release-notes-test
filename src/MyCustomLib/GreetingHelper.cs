@@ -9,7 +9,7 @@ public class GreetingHelper
 
     public static string GetGoodByeMessage()
     {
-        return $"Goodbye!";
+        return $"Goodbye!!";
     }
 
     public static string GetGoodByeMessageV2()
