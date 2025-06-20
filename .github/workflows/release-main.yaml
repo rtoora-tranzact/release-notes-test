@@ -33,37 +33,9 @@ jobs:
 
             - run: echo "${{ steps.set-version-output.outputs.NEXT_VERSION }}"
 
-    generate-changelog:
-        if: github.event.pull_request.merged == true
-        needs: increment-version
-        runs-on: ubuntu-latest
-        outputs:
-            changelog: ${{ steps.tag-changelog.outputs.changelog }}
-        steps:
-            - name: Checkout
-              uses: actions/checkout@v4
-              with:
-                fetch-depth: 0
-
-            - name: Generate Changelog
-              id: tag-changelog
-              uses: loopwerk/tag-changelog@v1
-              with:
-                token: ${{ secrets.GITHUB_TOKEN }}
-                exclude_types: other,doc,chore
-
-            - name: Create release
-              uses: actions/create-release@v1
-              env:
-                GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-              with:
-                tag_name: ${{ needs.increment-version.outputs.TAG_NAME }}
-                release_name: Release ${{ needs.increment-version.outputs.TAG_NAME }}
-                body: ${{ steps.tag-changelog.outputs.changelog }}
-
     release-package:
         if: github.event.pull_request.merged == true && (github.event.pull_request.base.ref == 'main')
-        needs: [increment-version, generate-changelog]
+        needs: increment-version
         env:
             GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
             DOTNET_PREVIEW: false
@@ -104,12 +76,58 @@ jobs:
                 echo '${{ needs.generate-changelog.outputs.changelog }}' > RELEASE_NOTES.md
 
             - name: Build
-              run: dotnet build $SRC_DIR/$SRC_PROJ --configuration Release /p:Version=${VERSION} /p:PackageReleaseNotes="$(cat RELEASE_NOTES.md)"
+              run: dotnet build $SRC_DIR/$SRC_PROJ --configuration Release /p:Version=${VERSION}"
 
             - name: Pack
-              run: dotnet pack $SRC_DIR/$SRC_PROJ --configuration Release /p:Version=${VERSION} /p:PackageReleaseNotes="$(cat RELEASE_NOTES.md)" --output .
+              run: dotnet pack $SRC_DIR/$SRC_PROJ --configuration Release /p:Version=${VERSION} --output .
 
             - name: Push to GitHub Feed
               run: dotnet nuget push $PACKAGE_NAME.${VERSION}.nupkg --source $PACKAGE_SOURCE --api-key $NUGET_AUTH_TOKEN
               env:
                 NUGET_AUTH_TOKEN: ${{ secrets.NUGET_AUTH_TOKEN }}
+
+            - id: build_changelog
+              name: "Build Changelog"
+              uses: mikepenz/release-changelog-builder-action@v4
+              env:
+                GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              with:
+                configurationJson: |
+                  {
+                    "template": "#{{CHANGELOG}}\n\n<details>\n<summary>Uncategorized</summary>\n\n#{{UNCATEGORIZED}}\n</details>",
+                    "categories": [
+                      {
+                          "title": "## 💬 Dependencies",
+                          "labels": ["dependencies"]
+                      },
+                      {
+                          "title": "## 🚀 Enhancement",
+                          "labels": ["enhancement"]
+                      },
+                      {
+                          "title": "## 🐛 Fixes",
+                          "labels": ["bug"]
+                      },
+                      {
+                          "title": "## 📄 Documentation",
+                          "labels": ["documentation"]
+                      },
+                      {
+                          "title": "## 🏗 Maintenance",
+                          "labels": ["maintenance"]
+                      }
+                    ]
+                  }
+
+            - id: create-release
+              name: Create Release
+              uses: im-open/create-release@v3.1.3
+              with:
+                github-token: ${{ secrets.GITHUB_TOKEN }}
+                tag-name: ${{ env.VERSION }}
+                commitish: ${{ github.ref }}
+                body: ${{ steps.build_changelog.outputs.changelog }}
+                prerelease: ${{ github.base_ref == 'develop' }}
+                # The release might already exist if you hit 're-run jobs' on a workflow run that already completed
+                # once. Creating a release when one already exists will fail, add the arg here to just delete it.
+                delete-existing-release: true
