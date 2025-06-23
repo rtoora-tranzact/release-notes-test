@@ -175,7 +175,7 @@ jobs:
                 failOnError: false
                 configurationJson: |
                   {
-                    "template": "{{#categories}}{{#title}}## {{title}}{{/title}}\n{{#entries}}- {{message}} ({{#issue}}#{{issue}}{{/issue}})\n{{/entries}}\n{{/categories}}\n\n<details>\n<summary>Uncategorized</summary>\n\n{{#uncategorized}}- {{message}} ({{#issue}}#{{issue}}{{/issue}})\n{{/uncategorized}}\n</details>",
+                    "template": "## What's Changed\n\n{{#categories}}\n### {{title}}\n{{#entries}}\n- {{message}} (#{{number}})\n{{/entries}}\n{{/categories}}\n{{#if uncategorized}}\n### Other Changes\n{{#uncategorized}}\n- {{message}} (#{{number}})\n{{/uncategorized}}\n{{/if}}",
                     "pr_template": "{{title}}",
                     "categories": [
                       {
@@ -197,31 +197,30 @@ jobs:
                     ],
                     "label_extractor": [
                       {
-                        "pattern": "^feat\\(.*\\):\\s(.*)$",
+                        "pattern": "^feat.*",
                         "target": "enhancement"
                       },
                       {
-                        "pattern": "^fix\\(.*\\):\\s(.*)$",
+                        "pattern": "^fix.*",
                         "target": "bug"
                       },
                       {
-                        "pattern": "^chore\\(.*\\):\\s(.*)$",
+                        "pattern": "^chore.*",
                         "target": "maintenance"
+                      },
+                      {
+                        "pattern": "^docs.*",
+                        "target": "documentation"
                       }
                     ],
                     "base_branches": ["main", "develop"],
-                    "ignore_tags": [".*-develop.*", ".*-alpha.*", ".*-beta.*"],
-                    "tag_resolver": {
-                      "method": "semver",
-                      "filter": {
-                        "pattern": ".*-.*",
-                        "flags": "i",
-                        "negate": true
-                      }
+                    "sort": {
+                      "order": "ASC",
+                      "on_property": "mergedAt"
                     },
-                    "date_formats": {
-                      "merged_at": "YYYY-MM-DD"
-                    }
+                    "max_tags_to_fetch": 200,
+                    "max_pull_requests": 200,
+                    "max_back_track_time_days": 365,
                   }
 
             - id: create-release
