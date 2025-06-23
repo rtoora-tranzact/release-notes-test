@@ -92,29 +92,27 @@ jobs:
               env:
                 GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               with:
+                # Include changes up to the current HEAD
+                toTag: HEAD
                 configurationJson: |
                   {
                     "template": "#{{CHANGELOG}}\n\n<details>\n<summary>Uncategorized</summary>\n\n#{{UNCATEGORIZED}}\n</details>",
                     "categories": [
                       {
-                          "title": "## 💬 Dependencies",
-                          "labels": ["dependencies"]
+                          "title": "## 🔥 Breaking Changes",
+                          "labels": ["breaking-change", "major"]
                       },
                       {
-                          "title": "## 🚀 Enhancement",
-                          "labels": ["enhancement"]
+                          "title": "## 🚀 Features",
+                          "labels": ["enhancement", "javascript", "minor", "patch"]
                       },
                       {
-                          "title": "## 🐛 Fixes",
+                          "title": "## 🐛 Issues & Tasks",
                           "labels": ["bug"]
                       },
                       {
-                          "title": "## 📄 Documentation",
-                          "labels": ["documentation"]
-                      },
-                      {
                           "title": "## 🏗 Maintenance",
-                          "labels": ["maintenance"]
+                          "labels": ["maintenance", "documentation", "dependencies", "chore"]
                       }
                     ]
                   }

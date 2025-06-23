@@ -16,4 +16,10 @@ public class GreetingHelper
     {
         return $"Goodbye!";
     }
+
+    // adding new feature A
+    // adding new feature B
+    // adding new feature C
+    // adding new feature D
+    // adding new feature E
 }
