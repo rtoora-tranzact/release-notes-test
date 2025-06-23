@@ -94,6 +94,10 @@ jobs:
               with:
                 # Include changes up to the current HEAD
                 toTag: HEAD
+                ignorePreReleases: true
+                fetchReleaseInformation: true
+                fetchReviewers: true
+                fetchReviews: true
                 configurationJson: |
                   {
                     "template": "#{{CHANGELOG}}\n\n<details>\n<summary>Uncategorized</summary>\n\n#{{UNCATEGORIZED}}\n</details>",
