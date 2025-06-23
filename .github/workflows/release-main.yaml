@@ -86,6 +86,12 @@ jobs:
               env:
                 NUGET_AUTH_TOKEN: ${{ secrets.NUGET_AUTH_TOKEN }}
 
+              id: get_previous_release
+            - name: Get previous release version
+              run: |
+                PREVIOUS_TAG=$(git tag --sort=-v:refname | grep -v -- '-' | head -n 1 || echo "")
+                echo "PREVIOUS_TAG=$PREVIOUS_TAG" >> $GITHUB_OUTPUT
+
             - id: build_changelog
               name: "Build Changelog"
               uses: mikepenz/release-changelog-builder-action@v4
@@ -93,14 +99,14 @@ jobs:
                 GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               with:
                 # Include changes up to the current HEAD
+                fromTag: ${{ steps.get_previous_release.outputs.PREVIOUS_TAG }}
                 toTag: HEAD
-                ignorePreReleases: true
-                fetchReleaseInformation: true
                 fetchReviewers: true
-                fetchReviews: true
+                fetchReleaseInformation: true
                 configurationJson: |
                   {
-                    "template": "#{{CHANGELOG}}\n\n<details>\n<summary>Uncategorized</summary>\n\n#{{UNCATEGORIZED}}\n</details>",
+                    "template": "{{#categories}}{{#title}}## {{title}}{{/title}}\n{{#entries}}{{message}} ({{#issue}}#{{issue}}{{/issue}})\n{{/entries}}\n{{/categories}}\n\n<details>\n<summary>Uncategorized</summary>\n\n{{#uncategorized}}{{message}} ({{#issue}}#{{issue}}{{/issue}})\n{{/uncategorized}}\n</details>",
+                    "pr_template": "- {{title}} (#{{number}})",
                     "categories": [
                       {
                           "title": "## 🔥 Breaking Changes",
@@ -118,6 +124,35 @@ jobs:
                           "title": "## 🏗 Maintenance",
                           "labels": ["maintenance", "documentation", "dependencies", "chore"]
                       }
+                    ],
+                    "label_extractor": [
+                      {
+                        "pattern": "^feat.*",
+                        "target": "enhancement"
+                      },
+                      {
+                        "pattern": "^fix.*",
+                        "target": "bug"
+                      },
+                      {
+                        "pattern": "^chore.*",
+                        "target": "maintenance"
+                      },
+                      {
+                        "pattern": "^docs.*",
+                        "target": "documentation"
+                      }
+                    ],
+                    "sort": {
+                      "order": "ASC",
+                      "on_property": "merged_at"
+                    },
+                    "max_tags_to_fetch": 200,
+                    "max_pull_requests": 200,
+                    "max_back_track_time_days": 365,
+                    "base_branches": [
+                      "main",
+                      "develop"
                     ]
                   }
 
