@@ -108,11 +108,11 @@ jobs:
                       },
                       {
                           "title": "## 🚀 Features",
-                          "labels": ["enhancement", "javascript", "minor", "patch"]
+                          "labels": ["enhancement", "javascript", "minor"]
                       },
                       {
                           "title": "## 🐛 Issues & Tasks",
-                          "labels": ["bug"]
+                          "labels": ["bug", "patch"]
                       },
                       {
                           "title": "## 🏗 Maintenance",
