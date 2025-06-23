@@ -19,4 +19,5 @@ public class GreetingHelper
 
     // adding new feature A
     // adding new feature B
+    // adding new feature C
 }
