@@ -16,4 +16,6 @@ public class GreetingHelper
     {
         return $"Goodbye!";
     }
+
+    // adding new feature A
 }
