@@ -28,6 +28,7 @@ public class GreetingHelper
     // adding new feature I
     // adding new feature J
     // adding new feature K
+    // adding new feature L
 
     // adding new fix A
     // adding new fix B
@@ -39,5 +40,6 @@ public class GreetingHelper
     // adding new maintenance A
     // adding new maintenance B
     // adding new maintenance C
+    // adding new maintenance E
 }
 
