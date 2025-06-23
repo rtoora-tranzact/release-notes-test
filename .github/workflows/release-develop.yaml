@@ -90,7 +90,6 @@ jobs:
               env:
                 GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               with:
-                # Include changes up to the current HEAD
                 toTag: HEAD
                 configurationJson: |
                   {

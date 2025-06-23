@@ -61,7 +61,6 @@ jobs:
                     9.0.x
                 dotnet-quality: ${{ env.DOTNET_PREVIEW == 'true' && 'preview' || 'ga' }}
 
-            # Configure NuGet authentication
             - name: Setup NuGet credentials
               run: |
                 if dotnet nuget list source | grep github-personal; then
@@ -71,10 +70,6 @@ jobs:
                   --username ${{ secrets.NUGET_USERNAME }} \
                   --password ${{ secrets.NUGET_AUTH_TOKEN }} \
                   --store-password-in-clear-text
-
-            # - name: Create release notes file
-            #   run: |
-            #     echo '${{ needs.generate-changelog.outputs.changelog }}' > RELEASE_NOTES.md
 
             - name: Build
               run: dotnet build $SRC_DIR/$SRC_PROJ --configuration Release /p:Version=${VERSION}
@@ -87,75 +82,34 @@ jobs:
               env:
                 NUGET_AUTH_TOKEN: ${{ secrets.NUGET_AUTH_TOKEN }}
 
-            # Obtén todos los tags
             - name: Fetch all tags
               run: git fetch --force --tags
 
-            #   id: get_previous_release
-            # - name: Get previous release version
-            #   run: |
-            #     PREVIOUS_TAG=$(git tag --sort=-v:refname | grep -v -- '-' | head -n 1 || echo "")
-            #     echo "PREVIOUS_TAG=$PREVIOUS_TAG" >> $GITHUB_OUTPUT
-
-            # Detectar mejor el rango de versiones
-            # - name: Get version range
-            #   id: get_version_range
-            #   run: |
-            #     LATEST_TAG=$(git tag --sort=-v:refname | grep -v -- '-' | head -n 1 || echo "")
-            #     if [ -z "$LATEST_TAG" ]; then
-            #       echo "PREVIOUS_TAG=" >> $GITHUB_OUTPUT
-            #     else
-            #       echo "PREVIOUS_TAG=$LATEST_TAG" >> $GITHUB_OUTPUT
-            #     fi
-            #     echo "CURRENT_SHA=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
-            #     echo "Comparing changes from $LATEST_TAG to current commit"
-
-
-            # Extraer directamente los PRs mergeados
-            # - name: Extract merged PRs manually
-            #   id: extract_prs
-            #   run: |
-            #     if [ -z "${{ steps.get_version_range.outputs.PREVIOUS_TAG }}" ]; then
-            #       echo "No previous tag found, extracting all PRs"
-            #       PR_LIST=$(gh pr list --limit 50 --state merged --base main --json number,title,mergedAt,labels --jq '.[] | "PR #\(.number): \(.title) [" + (.labels | map(.name) | join(",")) + "]"')
-            #     else
-            #       echo "Extracting PRs since tag ${{ steps.get_version_range.outputs.PREVIOUS_TAG }}"
-            #       SINCE_DATE=$(git log -1 --format=%ai ${{ steps.get_version_range.outputs.PREVIOUS_TAG }})
-            #       PR_LIST=$(gh pr list --limit 50 --state merged --base main --json number,title,mergedAt,labels --jq ".[] | select(.mergedAt >= \"$SINCE_DATE\") | \"PR #\(.number): \(.title) [\" + (.labels | map(.name) | join(\",\")) + \"]\"")
-            #     fi
-
-            #     echo "PR_LIST<<EOF" >> $GITHUB_OUTPUT
-            #     echo "$PR_LIST" >> $GITHUB_OUTPUT
-            #     echo "EOF" >> $GITHUB_OUTPUT
-            #   env:
-            #     GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-            # Obtener todos los PRs desde el último release (incluyendo los que llegaron mediante develop)
             - name: Get all PRs since last release
               id: get_prs
               run: |
-                # Encontrar los últimos dos tags de versión estable
+                # Find the last two stable version tags
                 LATEST_TAGS=$(git tag --sort=-v:refname | grep -v -- '-' | head -n 2 || echo "")
 
-                # El primero en la lista es el actual que estamos creando
+                # The first one is the current tag being created
                 CURRENT_TAG=$(echo "$LATEST_TAGS" | head -n 1)
-                # El segundo es realmente el último tag estable previo
+                # The second one is the previous stable tag
                 PREVIOUS_STABLE_TAG=$(echo "$LATEST_TAGS" | tail -n 1)
 
                 echo "Current tag being created: $CURRENT_TAG"
                 echo "Previous stable tag: $PREVIOUS_STABLE_TAG"
 
-                # Si no hay tag anterior, usa una fecha anterior
+                # If no previous tag found, use a date from 30 days ago
                 if [ -z "$PREVIOUS_STABLE_TAG" ]; then
                   echo "No previous tag found, using 30 days ago as reference"
                   START_DATE=$(date -d "30 days ago" +%Y-%m-%d)
                 else
-                  # Obtener la fecha del último tag
+                  # Get date from the previous tag
                   START_DATE=$(git log -1 --format=%ad --date=short $PREVIOUS_STABLE_TAG)
                   echo "Using date from previous stable tag: $START_DATE"
                 fi
 
-                # Escribe los resultados para el siguiente paso
+                # Write outputs for the next steps
                 echo "start_date=$START_DATE" >> $GITHUB_OUTPUT
                 echo "latest_tag=$PREVIOUS_STABLE_TAG" >> $GITHUB_OUTPUT
 
@@ -165,7 +119,6 @@ jobs:
               env:
                 GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               with:
-                # Include changes up to the current HEAD
                 fromTag: ${{ steps.get_prs.outputs.latest_tag || '' }}
                 toTag: ${{ github.sha }}
                 configurationJson: |
@@ -178,17 +131,17 @@ jobs:
                       },
                       {
                           "title": "## 🚀 Features",
-                          "labels": ["enhancement", "javascript", "minor"],
+                          "labels": ["enhancement", "javascript", "minor", "feat"],
                           "exhaustive": false
                       },
                       {
                           "title": "## 🐛 Issues & Tasks",
-                          "labels": ["bug", "patch"],
+                          "labels": ["bug", "patch", "fix"],
                           "exhaustive": false
                       },
                       {
                           "title": "## 🏗 Maintenance",
-                          "labels": ["maintenance", "documentation", "dependencies", "chore"],
+                          "labels": ["maintenance", "documentation", "dependencies", "chore", "refactor", "test"],
                           "exhaustive": false
                       }
                     ],
@@ -229,7 +182,5 @@ jobs:
                 tag-name: ${{ env.VERSION }}
                 commitish: ${{ github.ref }}
                 body: ${{ steps.build_changelog.outputs.changelog }}
-                prerelease: ${{ github.base_ref == 'develop' }}
-                # The release might already exist if you hit 're-run jobs' on a workflow run that already completed
-                # once. Creating a release when one already exists will fail, add the arg here to just delete it.
+                prerelease: false
                 delete-existing-release: true
