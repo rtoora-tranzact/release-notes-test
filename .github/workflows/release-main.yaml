@@ -134,23 +134,30 @@ jobs:
             - name: Get all PRs since last release
               id: get_prs
               run: |
-                # Encontrar el último tag de versión estable
-                LATEST_TAG=$(git tag --sort=-v:refname | grep -v -- '-' | head -n 1 || echo "")
-                echo "Latest stable tag: $LATEST_TAG"
+                # Encontrar los últimos dos tags de versión estable
+                LATEST_TAGS=$(git tag --sort=-v:refname | grep -v -- '-' | head -n 2 || echo "")
 
-                # Si no hay tag, usa una fecha anterior
-                if [ -z "$LATEST_TAG" ]; then
+                # El primero en la lista es el actual que estamos creando
+                CURRENT_TAG=$(echo "$LATEST_TAGS" | head -n 1)
+                # El segundo es realmente el último tag estable previo
+                PREVIOUS_STABLE_TAG=$(echo "$LATEST_TAGS" | tail -n 1)
+
+                echo "Current tag being created: $CURRENT_TAG"
+                echo "Previous stable tag: $PREVIOUS_STABLE_TAG"
+
+                # Si no hay tag anterior, usa una fecha anterior
+                if [ -z "$PREVIOUS_STABLE_TAG" ]; then
                   echo "No previous tag found, using 30 days ago as reference"
                   START_DATE=$(date -d "30 days ago" +%Y-%m-%d)
                 else
                   # Obtener la fecha del último tag
-                  START_DATE=$(git log -1 --format=%ad --date=short $LATEST_TAG)
-                  echo "Using date from last tag: $START_DATE"
+                  START_DATE=$(git log -1 --format=%ad --date=short $PREVIOUS_STABLE_TAG)
+                  echo "Using date from previous stable tag: $START_DATE"
                 fi
 
                 # Escribe los resultados para el siguiente paso
                 echo "start_date=$START_DATE" >> $GITHUB_OUTPUT
-                echo "latest_tag=$LATEST_TAG" >> $GITHUB_OUTPUT
+                echo "latest_tag=$PREVIOUS_STABLE_TAG" >> $GITHUB_OUTPUT
 
             - id: build_changelog
               name: "Build Changelog"
