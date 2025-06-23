@@ -72,9 +72,9 @@ jobs:
                   --password ${{ secrets.NUGET_AUTH_TOKEN }} \
                   --store-password-in-clear-text
 
-            - name: Create release notes file
-              run: |
-                echo '${{ needs.generate-changelog.outputs.changelog }}' > RELEASE_NOTES.md
+            # - name: Create release notes file
+            #   run: |
+            #     echo '${{ needs.generate-changelog.outputs.changelog }}' > RELEASE_NOTES.md
 
             - name: Build
               run: dotnet build $SRC_DIR/$SRC_PROJ --configuration Release /p:Version=${VERSION}
@@ -98,37 +98,59 @@ jobs:
             #     echo "PREVIOUS_TAG=$PREVIOUS_TAG" >> $GITHUB_OUTPUT
 
             # Detectar mejor el rango de versiones
-            - name: Get version range
-              id: get_version_range
-              run: |
-                LATEST_TAG=$(git tag --sort=-v:refname | grep -v -- '-' | head -n 1 || echo "")
-                if [ -z "$LATEST_TAG" ]; then
-                  echo "PREVIOUS_TAG=" >> $GITHUB_OUTPUT
-                else
-                  echo "PREVIOUS_TAG=$LATEST_TAG" >> $GITHUB_OUTPUT
-                fi
-                echo "CURRENT_SHA=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
-                echo "Comparing changes from $LATEST_TAG to current commit"
+            # - name: Get version range
+            #   id: get_version_range
+            #   run: |
+            #     LATEST_TAG=$(git tag --sort=-v:refname | grep -v -- '-' | head -n 1 || echo "")
+            #     if [ -z "$LATEST_TAG" ]; then
+            #       echo "PREVIOUS_TAG=" >> $GITHUB_OUTPUT
+            #     else
+            #       echo "PREVIOUS_TAG=$LATEST_TAG" >> $GITHUB_OUTPUT
+            #     fi
+            #     echo "CURRENT_SHA=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+            #     echo "Comparing changes from $LATEST_TAG to current commit"
 
 
             # Extraer directamente los PRs mergeados
-            - name: Extract merged PRs manually
-              id: extract_prs
+            # - name: Extract merged PRs manually
+            #   id: extract_prs
+            #   run: |
+            #     if [ -z "${{ steps.get_version_range.outputs.PREVIOUS_TAG }}" ]; then
+            #       echo "No previous tag found, extracting all PRs"
+            #       PR_LIST=$(gh pr list --limit 50 --state merged --base main --json number,title,mergedAt,labels --jq '.[] | "PR #\(.number): \(.title) [" + (.labels | map(.name) | join(",")) + "]"')
+            #     else
+            #       echo "Extracting PRs since tag ${{ steps.get_version_range.outputs.PREVIOUS_TAG }}"
+            #       SINCE_DATE=$(git log -1 --format=%ai ${{ steps.get_version_range.outputs.PREVIOUS_TAG }})
+            #       PR_LIST=$(gh pr list --limit 50 --state merged --base main --json number,title,mergedAt,labels --jq ".[] | select(.mergedAt >= \"$SINCE_DATE\") | \"PR #\(.number): \(.title) [\" + (.labels | map(.name) | join(\",\")) + \"]\"")
+            #     fi
+
+            #     echo "PR_LIST<<EOF" >> $GITHUB_OUTPUT
+            #     echo "$PR_LIST" >> $GITHUB_OUTPUT
+            #     echo "EOF" >> $GITHUB_OUTPUT
+            #   env:
+            #     GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+            # Obtener todos los PRs desde el último release (incluyendo los que llegaron mediante develop)
+            - name: Get all PRs since last release
+              id: get_prs
               run: |
-                if [ -z "${{ steps.get_version_range.outputs.PREVIOUS_TAG }}" ]; then
-                  echo "No previous tag found, extracting all PRs"
-                  PR_LIST=$(gh pr list --limit 50 --state merged --base main --json number,title,mergedAt,labels --jq '.[] | "PR #\(.number): \(.title) [" + (.labels | map(.name) | join(",")) + "]"')
+                # Encontrar el último tag de versión estable
+                LATEST_TAG=$(git tag --sort=-v:refname | grep -v -- '-' | head -n 1 || echo "")
+                echo "Latest stable tag: $LATEST_TAG"
+
+                # Si no hay tag, usa una fecha anterior
+                if [ -z "$LATEST_TAG" ]; then
+                  echo "No previous tag found, using 30 days ago as reference"
+                  START_DATE=$(date -d "30 days ago" +%Y-%m-%d)
                 else
-                  echo "Extracting PRs since tag ${{ steps.get_version_range.outputs.PREVIOUS_TAG }}"
-                  SINCE_DATE=$(git log -1 --format=%ai ${{ steps.get_version_range.outputs.PREVIOUS_TAG }})
-                  PR_LIST=$(gh pr list --limit 50 --state merged --base main --json number,title,mergedAt,labels --jq ".[] | select(.mergedAt >= \"$SINCE_DATE\") | \"PR #\(.number): \(.title) [\" + (.labels | map(.name) | join(\",\")) + \"]\"")
+                  # Obtener la fecha del último tag
+                  START_DATE=$(git log -1 --format=%ad --date=short $LATEST_TAG)
+                  echo "Using date from last tag: $START_DATE"
                 fi
 
-                echo "PR_LIST<<EOF" >> $GITHUB_OUTPUT
-                echo "$PR_LIST" >> $GITHUB_OUTPUT
-                echo "EOF" >> $GITHUB_OUTPUT
-              env:
-                GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                # Escribe los resultados para el siguiente paso
+                echo "start_date=$START_DATE" >> $GITHUB_OUTPUT
+                echo "latest_tag=$LATEST_TAG" >> $GITHUB_OUTPUT
 
             - id: build_changelog
               name: "Build Changelog"
@@ -137,15 +159,17 @@ jobs:
                 GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               with:
                 # Include changes up to the current HEAD
-                fromTag: ${{ steps.get_version_range.outputs.PREVIOUS_TAG }}
-                toTag: ${{ steps.get_version_range.outputs.CURRENT_SHA }}
+                fromTag: ${{ steps.get_prs.outputs.latest_tag || '' }}
+                toTag: ${{ github.sha }}
+                includeOpen: false
                 ignorePreReleases: true
+                fetchReviewers: true
                 fetchReleaseInformation: true
+                failOnError: false
                 configurationJson: |
                   {
                     "template": "{{#categories}}{{#title}}## {{title}}{{/title}}\n{{#entries}}- {{message}} ({{#issue}}#{{issue}}{{/issue}})\n{{/entries}}\n{{/categories}}\n\n<details>\n<summary>Uncategorized</summary>\n\n{{#uncategorized}}- {{message}} ({{#issue}}#{{issue}}{{/issue}})\n{{/uncategorized}}\n</details>",
                     "pr_template": "{{title}}",
-                    "empty_template": "## Changes\n\n${{ steps.extract_prs.outputs.PR_LIST }}\n\n*No conventional commits found in this release*",
                     "categories": [
                       {
                           "title": "## 🔥 Breaking Changes",
@@ -166,43 +190,31 @@ jobs:
                     ],
                     "label_extractor": [
                       {
-                        "pattern": "^feat[(]?.*[)]?:.*",
+                        "pattern": "^feat\\(.*\\):\\s(.*)$",
                         "target": "enhancement"
                       },
                       {
-                        "pattern": "^fix[(]?.*[)]?:.*",
+                        "pattern": "^fix\\(.*\\):\\s(.*)$",
                         "target": "bug"
                       },
                       {
-                        "pattern": "^chore[(]?.*[)]?:.*",
+                        "pattern": "^chore\\(.*\\):\\s(.*)$",
                         "target": "maintenance"
-                      },
-                      {
-                        "pattern": "^docs[(]?.*[)]?:.*",
-                        "target": "documentation"
                       }
                     ],
-                    "transformers": [
-                      {
-                        "pattern": "^feat:(.*)$",
-                        "target": "- $1"
-                      },
-                      {
-                        "pattern": "^fix:(.*)$",
-                        "target": "- $1"
-                      },
-                      {
-                        "pattern": "^chore:(.*)$",
-                        "target": "- $1"
+                    "base_branches": ["main", "develop"],
+                    "ignore_tags": [".*-develop.*", ".*-alpha.*", ".*-beta.*"],
+                    "tag_resolver": {
+                      "method": "semver",
+                      "filter": {
+                        "pattern": ".*-.*",
+                        "flags": "i",
+                        "negate": true
                       }
-                    ],
-                    "sort": {
-                      "order": "ASC",
-                      "on_property": "merged_at"
                     },
-                    "max_tags_to_fetch": 200,
-                    "max_pull_requests": 200,
-                    "max_back_track_time_days": 365
+                    "date_formats": {
+                      "merged_at": "YYYY-MM-DD"
+                    }
                   }
 
             - id: create-release
