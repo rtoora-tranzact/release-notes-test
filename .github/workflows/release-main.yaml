@@ -168,11 +168,6 @@ jobs:
                 # Include changes up to the current HEAD
                 fromTag: ${{ steps.get_prs.outputs.latest_tag || '' }}
                 toTag: ${{ github.sha }}
-                includeOpen: false
-                ignorePreReleases: true
-                fetchReviewers: true
-                fetchReleaseInformation: true
-                failOnError: false
                 configurationJson: |
                   {
                     "template": "## What's Changed\n\n{{#categories}}\n### {{title}}\n{{#entries}}\n- {{message}} (#{{number}})\n{{/entries}}\n{{/categories}}\n{{#if uncategorized}}\n### Other Changes\n{{#uncategorized}}\n- {{message}} (#{{number}})\n{{/uncategorized}}\n{{/if}}",
@@ -184,55 +179,36 @@ jobs:
                       },
                       {
                           "title": "## 🚀 Features",
-                          "labels": ["enhancement", "javascript", "minor"]
+                          "labels": ["enhancement", "javascript", "minor"],
+                          "exhaustive": false
                       },
                       {
                           "title": "## 🐛 Issues & Tasks",
-                          "labels": ["bug", "patch"]
+                          "labels": ["bug", "patch"],
+                          "exhaustive": false
                       },
                       {
                           "title": "## 🏗 Maintenance",
-                          "labels": ["maintenance", "documentation", "dependencies", "chore"]
-                      }
-                    ],
-                    "label_extractor": [
-                      {
-                        "pattern": "^feat.*|^feature.*|.*add feature.*",
-                        "target": "enhancement",
-                        "on_property": "title",
-                        "use_if_no_label_matches": true
-                      },
-                      {
-                        "pattern": "^fix.*|^bug.*",
-                        "target": "bug",
-                        "on_property": "title",
-                        "use_if_no_label_matches": true
-                      },
-                      {
-                        "pattern": "^chore.*|^maintenance.*|.*maintenance.*",
-                        "target": "maintenance",
-                        "on_property": "title",
-                        "use_if_no_label_matches": true
-                      },
-                      {
-                        "pattern": "^docs.*|^documentation.*",
-                        "target": "documentation",
-                        "on_property": "title",
-                        "use_if_no_label_matches": true
+                          "labels": ["maintenance", "documentation", "dependencies", "chore"],
+                          "exhaustive": false
                       }
                     ],
                     "transformers": [
                       {
                         "pattern": "^feat: (.*)$",
-                        "target": "$1"
+                        "target": "🚀 $1"
                       },
                       {
                         "pattern": "^fix: (.*)$",
-                        "target": "$1"
+                        "target": "🐛 $1"
                       },
                       {
                         "pattern": "^chore: (.*)$",
-                        "target": "$1"
+                        "target": "🏗 $1"
+                      },
+                      {
+                        "pattern": "^PR (.*) to (.*)$",
+                        "target": "🔄 Merge from $1 to $2"
                       }
                     ],
                     "base_branches": ["main", "develop"],
@@ -240,15 +216,10 @@ jobs:
                       "order": "ASC",
                       "on_property": "mergedAt"
                     },
-                    "ignore_labels": [
-                      "duplicate",
-                      "question",
-                      "invalid",
-                      "wontfix"
-                    ],
                     "max_tags_to_fetch": 200,
                     "max_pull_requests": 200,
                     "max_back_track_time_days": 365,
+                    "enable_prereleases": false
                   }
 
             - id: create-release
