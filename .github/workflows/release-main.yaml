@@ -197,20 +197,42 @@ jobs:
                     ],
                     "label_extractor": [
                       {
-                        "pattern": "^feat.*",
-                        "target": "enhancement"
+                        "pattern": "^feat.*|^feature.*|.*add feature.*",
+                        "target": "enhancement",
+                        "on_property": "title",
+                        "use_if_no_label_matches": true
                       },
                       {
-                        "pattern": "^fix.*",
-                        "target": "bug"
+                        "pattern": "^fix.*|^bug.*",
+                        "target": "bug",
+                        "on_property": "title",
+                        "use_if_no_label_matches": true
                       },
                       {
-                        "pattern": "^chore.*",
-                        "target": "maintenance"
+                        "pattern": "^chore.*|^maintenance.*|.*maintenance.*",
+                        "target": "maintenance",
+                        "on_property": "title",
+                        "use_if_no_label_matches": true
                       },
                       {
-                        "pattern": "^docs.*",
-                        "target": "documentation"
+                        "pattern": "^docs.*|^documentation.*",
+                        "target": "documentation",
+                        "on_property": "title",
+                        "use_if_no_label_matches": true
+                      }
+                    ],
+                    "transformers": [
+                      {
+                        "pattern": "^feat: (.*)$",
+                        "target": "$1"
+                      },
+                      {
+                        "pattern": "^fix: (.*)$",
+                        "target": "$1"
+                      },
+                      {
+                        "pattern": "^chore: (.*)$",
+                        "target": "$1"
                       }
                     ],
                     "base_branches": ["main", "develop"],
@@ -218,6 +240,12 @@ jobs:
                       "order": "ASC",
                       "on_property": "mergedAt"
                     },
+                    "ignore_labels": [
+                      "duplicate",
+                      "question",
+                      "invalid",
+                      "wontfix"
+                    ],
                     "max_tags_to_fetch": 200,
                     "max_pull_requests": 200,
                     "max_back_track_time_days": 365,
