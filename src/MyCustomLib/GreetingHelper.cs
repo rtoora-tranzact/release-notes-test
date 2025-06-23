@@ -42,6 +42,7 @@ public class GreetingHelper
     // adding new fix E
     // adding new fix F
     // adding new fix G
+    // adding new fix H
 
     // adding new maintenance A
     // adding new maintenance B
