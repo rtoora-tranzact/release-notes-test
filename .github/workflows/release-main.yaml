@@ -170,8 +170,7 @@ jobs:
                 toTag: ${{ github.sha }}
                 configurationJson: |
                   {
-                    "template": "## What's Changed\n\n{{#categories}}\n### {{title}}\n{{#entries}}\n- {{message}} (#{{number}})\n{{/entries}}\n{{/categories}}\n{{#if uncategorized}}\n### Other Changes\n{{#uncategorized}}\n- {{message}} (#{{number}})\n{{/uncategorized}}\n{{/if}}",
-                    "pr_template": "{{title}}",
+                    "template": "#{{CHANGELOG}}\n\n<details>\n<summary>Uncategorized</summary>\n\n#{{UNCATEGORIZED}}\n</details>",
                     "categories": [
                       {
                           "title": "## 🔥 Breaking Changes",
