@@ -90,6 +90,8 @@ jobs:
               env:
                 GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               with:
+                # Include changes up to the current HEAD
+                toTag: HEAD
                 configurationJson: |
                   {
                     "template": "#{{CHANGELOG}}\n\n<details>\n<summary>Uncategorized</summary>\n\n#{{UNCATEGORIZED}}\n</details>",
