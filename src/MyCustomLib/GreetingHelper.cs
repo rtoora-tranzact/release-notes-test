@@ -26,4 +26,5 @@ public class GreetingHelper
 
     // adding new fix A
     // adding new fix B
+    // adding new fix C
 }
