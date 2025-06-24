@@ -1,0 +1,4 @@
+#!/bin/sh
+# Agrega aquí cualquier verificación previa al commit
+# Por ejemplo: npm test
+echo "Pre-commit hook executed successfully"

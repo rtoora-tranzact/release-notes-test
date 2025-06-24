@@ -1,0 +1,26 @@
+{
+  "name": "release-notes-test",
+  "version": "1.0.0",
+  "description": "This project is for testing packages generation along with it's corresponding release notes",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"No tests specified\"",
+    "prepare": "husky"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rtoora-tranzact/release-notes-test.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/rtoora-tranzact/release-notes-test/issues"
+  },
+  "homepage": "https://github.com/rtoora-tranzact/release-notes-test#readme",
+  "devDependencies": {
+    "@commitlint/cli": "^19.8.1",
+    "@commitlint/config-conventional": "^19.8.1",
+    "husky": "^9.1.7"
+  }
+}
