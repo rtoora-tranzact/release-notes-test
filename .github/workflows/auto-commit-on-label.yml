@@ -2,7 +2,7 @@ name: Auto Commit on PR Label
 
 on:
   pull_request:
-    types: [labeled]
+    types: [labeled, opened]
     branches:
       - develop
       - main
