@@ -1,0 +1,92 @@
+name: Auto Commit on Label
+
+on:
+  workflow_call:
+    inputs:
+      target_branch:
+        description: 'Target branch for the commit'
+        required: false
+        type: string
+        default: 'develop'
+      commit_message_suffix:
+        description: 'Additional suffix for commit message'
+        required: false
+        type: string
+        default: 'AUTOMATED COMMIT for version bump'
+    secrets:
+      GITHUB_TOKEN:
+        required: true
+
+jobs:
+  auto-commit:
+    name: Create automated commit based on label
+    runs-on: ubuntu-latest
+    if: |
+      contains(github.event.label.name, 'breaking-change') ||
+      contains(github.event.label.name, 'major') ||
+      contains(github.event.label.name, 'enhancement') ||
+      contains(github.event.label.name, 'minor') ||
+      contains(github.event.label.name, 'feat')
+
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+
+      - name: Determine commit type and validate
+        id: validate-label
+        run: |
+          LABEL_NAME="${{ github.event.label.name }}"
+
+          case "$LABEL_NAME" in
+            "breaking-change"|"major")
+              COMMIT_TYPE="BREAKING CHANGE"
+              echo "✅ Valid label: $LABEL_NAME -> $COMMIT_TYPE"
+              ;;
+            "enhancement"|"minor"|"feat")
+              COMMIT_TYPE="feat"
+              echo "✅ Valid label: $LABEL_NAME -> $COMMIT_TYPE"
+              ;;
+            *)
+              echo "❌ Unsupported label: $LABEL_NAME - No commit will be created"
+              echo "should_commit=false" >> $GITHUB_OUTPUT
+              exit 0
+              ;;
+          esac
+
+          echo "commit_type=$COMMIT_TYPE" >> $GITHUB_OUTPUT
+          echo "label_name=$LABEL_NAME" >> $GITHUB_OUTPUT
+          echo "should_commit=true" >> $GITHUB_OUTPUT
+
+      - name: Create automated commit
+        if: steps.validate-label.outputs.should_commit == 'true'
+        run: |
+          COMMIT_TYPE="${{ steps.commit-type.outputs.commit_type }}"
+          LABEL_NAME="${{ steps.commit-type.outputs.label_name }}"
+          COMMIT_MESSAGE="${COMMIT_TYPE}: ${{ inputs.commit_message_suffix }} (label: ${LABEL_NAME})"
+
+          # Create or modify a file to ensure there are changes to commit
+          echo "# Automated Version Bump" > VERSION_BUMP.md
+          echo "Generated on: $(date)" >> VERSION_BUMP.md
+          echo "Label: ${LABEL_NAME}" >> VERSION_BUMP.md
+          echo "Commit Type: ${COMMIT_TYPE}" >> VERSION_BUMP.md
+          echo "PR: #${{ github.event.pull_request.number }}" >> VERSION_BUMP.md
+
+          git add VERSION_BUMP.md
+          git commit -m "$COMMIT_MESSAGE"
+
+          echo "✅ Commit created successfully: $COMMIT_MESSAGE"
+
+      - name: Push changes
+        if: steps.validate-label.outputs.should_commit == 'true'
+        run: |
+          git push origin ${{ github.event.pull_request.head.ref }}
+          echo "✅ Changes pushed to branch: ${{ github.event.pull_request.head.ref }}"
