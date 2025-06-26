@@ -1,148 +1,148 @@
-name: Auto Commit on Label
+# name: Auto Commit on Label
 
-on:
-  workflow_call:
-    inputs:
-      target_branch:
-        description: 'Target branch for the commit'
-        required: false
-        type: string
-        default: 'develop'
-      commit_message_suffix:
-        description: 'Additional suffix for commit message'
-        required: false
-        type: string
-        default: 'AUTOMATED COMMIT for version bump'
-    secrets:
-      PAT_TOKEN:
-        required: true
+# on:
+#   workflow_call:
+#     inputs:
+#       target_branch:
+#         description: 'Target branch for the commit'
+#         required: false
+#         type: string
+#         default: 'develop'
+#       commit_message_suffix:
+#         description: 'Additional suffix for commit message'
+#         required: false
+#         type: string
+#         default: 'AUTOMATED COMMIT for version bump'
+#     secrets:
+#       PAT_TOKEN:
+#         required: true
 
-jobs:
-  auto-commit:
-    name: Create automated commit based on label
-    runs-on: ubuntu-latest
-    # if: |
-    #   contains(github.event.label.name, 'breaking-change') ||
-    #   contains(github.event.label.name, 'major') ||
-    #   contains(github.event.label.name, 'enhancement') ||
-    #   contains(github.event.label.name, 'minor') ||
-    #   contains(github.event.label.name, 'feat')
+# jobs:
+#   auto-commit:
+#     name: Create automated commit based on label
+#     runs-on: ubuntu-latest
+#     # if: |
+#     #   contains(github.event.label.name, 'breaking-change') ||
+#     #   contains(github.event.label.name, 'major') ||
+#     #   contains(github.event.label.name, 'enhancement') ||
+#     #   contains(github.event.label.name, 'minor') ||
+#     #   contains(github.event.label.name, 'feat')
 
-    steps:
-      - name: Checkout PR branch
-        uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.PAT_TOKEN }}
-          ref: ${{ github.event.pull_request.head.ref }}
-          fetch-depth: 0
+#     steps:
+#       - name: Checkout PR branch
+#         uses: actions/checkout@v4
+#         with:
+#           token: ${{ secrets.PAT_TOKEN }}
+#           ref: ${{ github.event.pull_request.head.ref }}
+#           fetch-depth: 0
 
-      - name: Get PR labels and find first valid label
-        id: find-label
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const { data: pullRequest } = await github.rest.pulls.get({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: context.issue.number
-            });
+#       - name: Get PR labels and find first valid label
+#         id: find-label
+#         uses: actions/github-script@v7
+#         with:
+#           github-token: ${{ secrets.GITHUB_TOKEN }}
+#           script: |
+#             const { data: pullRequest } = await github.rest.pulls.get({
+#               owner: context.repo.owner,
+#               repo: context.repo.repo,
+#               pull_number: context.issue.number
+#             });
             
-            const supportedLabels = [
-              'breaking-change', 'major',
-              'enhancement', 'minor', 'feat',
-              'bug', 'bugfix', 'patch', 'fix'
-            ];
+#             const supportedLabels = [
+#               'breaking-change', 'major',
+#               'enhancement', 'minor', 'feat',
+#               'bug', 'bugfix', 'patch', 'fix'
+#             ];
             
-            console.log('PR Labels:', pullRequest.labels.map(l => l.name));
+#             console.log('PR Labels:', pullRequest.labels.map(l => l.name));
             
-            // Find the first supported label in the order they appear
-            const validLabel = pullRequest.labels.find(label => 
-              supportedLabels.includes(label.name)
-            );
+#             // Find the first supported label in the order they appear
+#             const validLabel = pullRequest.labels.find(label => 
+#               supportedLabels.includes(label.name)
+#             );
             
-            if (validLabel) {
-              console.log(`✅ First valid label found: ${validLabel.name}`);
-              core.setOutput('has_valid_label', 'true');
-              core.setOutput('selected_label', validLabel.name);
-            } else {
-              console.log('❌ No valid labels found');
-              core.setOutput('has_valid_label', 'false');
-              core.setOutput('selected_label', '');
-            }
+#             if (validLabel) {
+#               console.log(`✅ First valid label found: ${validLabel.name}`);
+#               core.setOutput('has_valid_label', 'true');
+#               core.setOutput('selected_label', validLabel.name);
+#             } else {
+#               console.log('❌ No valid labels found');
+#               core.setOutput('has_valid_label', 'false');
+#               core.setOutput('selected_label', '');
+#             }
 
-      - name: Configure Git
-        if: steps.find-label.outputs.has_valid_label == 'true'
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
+#       - name: Configure Git
+#         if: steps.find-label.outputs.has_valid_label == 'true'
+#         run: |
+#           git config --local user.email "action@github.com"
+#           git config --local user.name "GitHub Action"
 
-      - name: Determine commit type and validate
-        if: steps.find-label.outputs.has_valid_label == 'true'
-        id: validate-label
-        run: |
-          LABEL_NAME="${{ steps.find-label.outputs.selected_label }}"
+#       - name: Determine commit type and validate
+#         if: steps.find-label.outputs.has_valid_label == 'true'
+#         id: validate-label
+#         run: |
+#           LABEL_NAME="${{ steps.find-label.outputs.selected_label }}"
 
-          case "$LABEL_NAME" in
-            "breaking-change"|"major")
-              COMMIT_TYPE="BREAKING CHANGE"
-              echo "✅ Valid label: $LABEL_NAME -> $COMMIT_TYPE"
-              ;;
-            "enhancement"|"minor"|"feat")
-              COMMIT_TYPE="feat"
-              echo "✅ Valid label: $LABEL_NAME -> $COMMIT_TYPE"
-              ;;
-            *)
-              echo "Unexpected error: $LABEL_NAME should be valid"
-              exit 1
-              ;;
-          esac
+#           case "$LABEL_NAME" in
+#             "breaking-change"|"major")
+#               COMMIT_TYPE="BREAKING CHANGE"
+#               echo "✅ Valid label: $LABEL_NAME -> $COMMIT_TYPE"
+#               ;;
+#             "enhancement"|"minor"|"feat")
+#               COMMIT_TYPE="feat"
+#               echo "✅ Valid label: $LABEL_NAME -> $COMMIT_TYPE"
+#               ;;
+#             *)
+#               echo "Unexpected error: $LABEL_NAME should be valid"
+#               exit 1
+#               ;;
+#           esac
 
-          echo "commit_type=$COMMIT_TYPE" >> $GITHUB_OUTPUT
-          echo "label_name=$LABEL_NAME" >> $GITHUB_OUTPUT
-          echo "Selected label: $LABEL_NAME -> Commit type: $COMMIT_TYPE"
+#           echo "commit_type=$COMMIT_TYPE" >> $GITHUB_OUTPUT
+#           echo "label_name=$LABEL_NAME" >> $GITHUB_OUTPUT
+#           echo "Selected label: $LABEL_NAME -> Commit type: $COMMIT_TYPE"
 
-      - name: Check if automated commit already exists
-        if: steps.find-label.outputs.has_valid_label == 'true'
-        id: check-existing-commit
-        run: |
-          # Check if there's already an automated commit in this PR
-          AUTOMATED_COMMITS=$(git log --oneline --grep="AUTOMATED COMMIT" origin/${{ github.base_ref }}..HEAD || echo "")
+#       - name: Check if automated commit already exists
+#         if: steps.find-label.outputs.has_valid_label == 'true'
+#         id: check-existing-commit
+#         run: |
+#           # Check if there's already an automated commit in this PR
+#           AUTOMATED_COMMITS=$(git log --oneline --grep="AUTOMATED COMMIT" origin/${{ github.base_ref }}..HEAD || echo "")
           
-          if [ -n "$AUTOMATED_COMMITS" ]; then
-            echo "⚠️ Automated commit already exists in this PR:"
-            echo "$AUTOMATED_COMMITS"
-            echo "should_create_commit=false" >> $GITHUB_OUTPUT
-          else
-            echo "✅ No automated commit found, proceeding with creation"
-            echo "should_create_commit=true" >> $GITHUB_OUTPUT
-          fi
+#           if [ -n "$AUTOMATED_COMMITS" ]; then
+#             echo "⚠️ Automated commit already exists in this PR:"
+#             echo "$AUTOMATED_COMMITS"
+#             echo "should_create_commit=false" >> $GITHUB_OUTPUT
+#           else
+#             echo "✅ No automated commit found, proceeding with creation"
+#             echo "should_create_commit=true" >> $GITHUB_OUTPUT
+#           fi
 
-      - name: Create automated commit
-        if: |
-          steps.find-label.outputs.has_valid_label == 'true' &&
-          steps.check-existing-commit.outputs.should_create_commit == 'true'
-        run: |
-          COMMIT_TYPE="${{ steps.validate-label.outputs.commit_type }}"
-          LABEL_NAME="${{ steps.validate-label.outputs.label_name }}"
-          COMMIT_MESSAGE="${COMMIT_TYPE}: ${{ inputs.commit_message_suffix }} (label: ${LABEL_NAME})"
+#       - name: Create automated commit
+#         if: |
+#           steps.find-label.outputs.has_valid_label == 'true' &&
+#           steps.check-existing-commit.outputs.should_create_commit == 'true'
+#         run: |
+#           COMMIT_TYPE="${{ steps.validate-label.outputs.commit_type }}"
+#           LABEL_NAME="${{ steps.validate-label.outputs.label_name }}"
+#           COMMIT_MESSAGE="${COMMIT_TYPE}: ${{ inputs.commit_message_suffix }} (label: ${LABEL_NAME})"
           
-          # Create or modify a file to ensure there are changes to commit
-          echo "# Automated Version Bump" > VERSION_BUMP.md
-          echo "Generated on: $(date)" >> VERSION_BUMP.md
-          echo "Selected Label: ${LABEL_NAME}" >> VERSION_BUMP.md
-          echo "Commit Type: ${COMMIT_TYPE}" >> VERSION_BUMP.md
-          echo "PR: #${{ github.event.pull_request.number }}" >> VERSION_BUMP.md
-          echo "Trigger Event: ${{ github.event_name }}" >> VERSION_BUMP.md
+#           # Create or modify a file to ensure there are changes to commit
+#           echo "# Automated Version Bump" > VERSION_BUMP.md
+#           echo "Generated on: $(date)" >> VERSION_BUMP.md
+#           echo "Selected Label: ${LABEL_NAME}" >> VERSION_BUMP.md
+#           echo "Commit Type: ${COMMIT_TYPE}" >> VERSION_BUMP.md
+#           echo "PR: #${{ github.event.pull_request.number }}" >> VERSION_BUMP.md
+#           echo "Trigger Event: ${{ github.event_name }}" >> VERSION_BUMP.md
           
-          git add VERSION_BUMP.md
-          git commit -m "$COMMIT_MESSAGE"
+#           git add VERSION_BUMP.md
+#           git commit -m "$COMMIT_MESSAGE"
           
-          echo "✅ Automated commit created: $COMMIT_MESSAGE"
+#           echo "✅ Automated commit created: $COMMIT_MESSAGE"
 
-      - name: Push changes
-        if: |
-          steps.find-label.outputs.has_valid_label == 'true' && steps.check-existing-commit.outputs.should_create_commit == 'true'
-        run: |
-          git push origin ${{ github.event.pull_request.head.ref }}
-          echo "✅ Changes pushed successfully"
+#       - name: Push changes
+#         if: |
+#           steps.find-label.outputs.has_valid_label == 'true' && steps.check-existing-commit.outputs.should_create_commit == 'true'
+#         run: |
+#           git push origin ${{ github.event.pull_request.head.ref }}
+#           echo "✅ Changes pushed successfully"
