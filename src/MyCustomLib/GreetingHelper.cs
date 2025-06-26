@@ -40,6 +40,7 @@ public class GreetingHelper
     // adding new feature U
     // adding new feature V
     // adding new feature W
+    // adding new feature X
 
     // adding new fix A
     // adding new fix B
