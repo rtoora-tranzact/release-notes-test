@@ -14,8 +14,8 @@ permissions:
 
 jobs:
   auto-commit-on-label:
-    # uses: rtoora-tranzact/github.workflows/.github/workflows/auto-commit-reusable.yml@main
-    uses: ./.github/workflows/auto-commit-reusable.yml
+    uses: rtoora-tranzact/github.workflows/.github/workflows/auto-commit-reusable.yml@main
+    # uses: ./.github/workflows/auto-commit-reusable.yml
     with:
       target_branch: ${{ github.base_ref }}
       commit_message_suffix: "AUTOMATED COMMIT"
