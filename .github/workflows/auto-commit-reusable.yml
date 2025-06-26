@@ -14,7 +14,7 @@ on:
         type: string
         default: 'AUTOMATED COMMIT for version bump'
     secrets:
-      GITHUB_TOKEN:
+      PAT_TOKEN:
         required: true
 
 jobs:
@@ -32,7 +32,7 @@ jobs:
       - name: Checkout PR branch
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.PAT_TOKEN }}
           ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 0
 

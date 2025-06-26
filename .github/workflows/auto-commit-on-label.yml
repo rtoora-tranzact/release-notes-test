@@ -20,4 +20,4 @@ jobs:
       target_branch: ${{ github.base_ref }}
       commit_message_suffix: "AUTOMATED COMMIT"
     secrets:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      PAT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
