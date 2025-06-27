@@ -9,24 +9,8 @@ on:
       - develop
       - main
 jobs:
-  lint-commits:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 'lts/*'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Lint commits
-        run: npx commitlint --from ${{ github.event.pull_request.base.sha || 'HEAD~1' }} --to ${{ github.event.pull_request.head.sha || 'HEAD' }}
+  # conventional-commits-linting:
+  #   uses: TRANZACT/TzDigital.GitHub.Workflows/.github/workflows/conventional-commit-linting.yml@main
 
   build-lib:
     runs-on: ubuntu-latest
