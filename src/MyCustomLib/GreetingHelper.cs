@@ -30,5 +30,7 @@ public class GreetingHelper
     // add FX 4
 
     // Chore
+    // add CH 1
+    // add CH 2
 }
 
