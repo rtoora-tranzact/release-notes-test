@@ -22,6 +22,7 @@ public class GreetingHelper
 
     // Features
     // add FT 1
+    // add FT 2
 
     // Fixes
     // add FX 1
