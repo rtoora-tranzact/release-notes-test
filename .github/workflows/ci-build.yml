@@ -15,6 +15,9 @@ jobs:
   build-lib:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    if: |
+      github.event_name == 'pull_request' ||
+      (github.event_name == 'push' && !contains(github.event.head_commit.message, 'AUTOMATED COMMIT'))
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
