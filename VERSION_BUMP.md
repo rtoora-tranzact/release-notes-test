@@ -1,6 +1,6 @@
 # Automated Version Bump
-Generated on: Thu Jun 26 20:37:46 UTC 2025
-Selected Label: enhancement
-Commit Type: feat
-PR: #101
+Generated on: Fri Jun 27 13:58:59 UTC 2025
+Selected Label: breaking-change
+Commit Type: BREAKING CHANGE
+PR: #102
 Trigger Event: pull_request
