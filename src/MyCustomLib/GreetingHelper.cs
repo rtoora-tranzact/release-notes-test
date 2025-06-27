@@ -31,5 +31,6 @@ public class GreetingHelper
 
     // Chore
     // add CH 1
+    // add CH 2
 }
 
