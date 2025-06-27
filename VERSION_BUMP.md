@@ -1,6 +1,6 @@
 # Automated Version Bump
-Generated on: Fri Jun 27 17:25:34 UTC 2025
-Selected Label: enhancement
+Generated on: Fri Jun 27 19:54:26 UTC 2025
+Selected Label: minor
 Commit Type: feat
-PR: #105
+PR: #118
 Trigger Event: pull_request
