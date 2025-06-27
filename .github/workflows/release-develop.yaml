@@ -25,12 +25,12 @@ jobs:
                 branch-name: ${{ github.base_ref }}
                 create-ref: true
                 github-token: ${{ secrets.GITHUB_TOKEN }}
-                default-release-type: patch
+                default-release-type: major
 
             - id: set-version-output
               name: Set version output
               run: |
-                export VERSION="$(echo ${{ steps.get-version.outputs.NEXT_VERSION }} | sed 's/^v//')"
+                export VERSION="$(echo ${{ steps.get-version.outputs.NEXT_VERSION }} | cut -c 2-)"
                 echo "NEXT_VERSION=$VERSION" >> $GITHUB_OUTPUT
 
             - run: echo "${{ steps.set-version-output.outputs.NEXT_VERSION }}"
